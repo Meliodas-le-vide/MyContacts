@@ -4,14 +4,14 @@
              <div class="bg-white  text-left text-sm ">
                 <h2 class="text-2xl font-semibold mb-6 text-center text-gray-800">My Contacts</h2>
                 <form @submit.prevent="login">
-                    <input id="email" v-model="email" class="w-full bg-transparent border my-3 border-gray-500/30 outline-none rounded-lg py-2.5 px-4" type="email" placeholder="Entrer votre email">
-                    <input id="password" v-model="password" class="w-full bg-transparent border mt-1 border-gray-500/30 outline-none rounded-lg py-2.5 px-4" type="password" placeholder="Entrer votre de mot de passe">
+                    <input id="email" v-model="user.email" class="w-full bg-transparent border my-3 border-gray-500/30 outline-none rounded-lg py-2.5 px-4" type="email" placeholder="Entrer votre email">
+                    <input id="password" v-model="user.password" class="w-full bg-transparent border mt-1 border-gray-500/30 outline-none rounded-lg py-2.5 px-4" type="password" placeholder="Entrer votre de mot de passe">
                     <div class="text-right py-4">
-                        <a class="text-blue-500 underline" href="#">Mot de passe oubié?</a>
+                        <a class="text-green-500 underline" href="#">Mot de passe oubié?</a>
                     </div>
-                    <button type="submit" class="w-full mb-3 bg-blue-500 py-2.5 rounded-full text-white">Connexion</button>
+                    <button type="submit" class="w-full mb-3  bg-green-500 py-2.5 rounded-full text-white">Connexion</button>
                 </form>
-                <p class="text-center mt-4">Vous n'avez pas de compt? <router-link to="/register"><a class="text-blue-500 underline">Inscrivez-vous</a></router-link></p>
+                <p class="text-center mt-4">Vous n'avez pas de compt? <router-link to="/register"><a class="text-green-500 underline">Inscrivez-vous</a></router-link></p>
                 <button type="button" class="w-full flex items-center gap-2 justify-center mt-5 bg-black py-2.5 rounded-full text-white">
                     <img class="h-4 w-4" src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/appleLogo.png" alt="appleLogo">
                     Connexion avec Apple
@@ -23,28 +23,45 @@
             </div>
      </div>
 </template>
-<script lang="ts">
-   import axios from 'axios';
+<script>
+import { accountService } from '../_services';
     export default {
         name: "Login",
         data() {
            return  {
-               email: '',
-               password: '',          
+               user: {
+                email: '',
+                password: '',
+               }          
            }
         },       
         methods: {
-           async login(){
-             const response = await axios.post('https://api-contact.zoul.dev/api/users/login',{
-                    email: this.email,
-                    password: this.password,
-             });
-              console.log(response);
-                
-            }
-
             
+           async login(){   
+                    accountService.login(this.user) 
+                    .then(res => {
+                        console.log(res.data)
+                        accountService.saveToken(res.data.token)
+                        this.$router.push('/dashboard')
+                    })
+                    .catch(err => console.log(err))
 
+            //         const response = await fetch('https://api-contact.zoul.dev/api/users/login',{
+            //         method: "POST",
+            //         headers: {
+            //             'Content-type': 'application/json'
+            //         },
+            //         body: JSON.stringify(this.user)
+
+            //  })
+            //  .then(
+            //     res => console.log(res),
+            //     localStorage.setItem('token',),
+            //     this.$router.push('/dashboard')
+            // )
+            //  .catch(err => console.log(err))
+                     
+            }
         }
     }
 </script>
