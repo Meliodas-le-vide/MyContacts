@@ -1,48 +1,91 @@
-import { defineStore } from "pinia";
-import  {ref,computed} from 'vue'
-
-import axios from "axios";
+import { defineStore } from 'pinia'
+import axios from 'axios'
 
 
-export const usePostStore = defineStore('post',{
-    state: () => ({
-        posts: ref([]),
-        selectedPost: ref([]),
-        // currentPage = ref(1),
-        // itemPergePage = 5,
-    }),
+const API_URL = '/api/notes'
 
-    actions: {
+export const usePostStore = defineStore('post', {
+  state: () => ({
+    posts: [],
+    selectedPost: null,
+    isLoading: false,
+    error: null,
+  }),
 
-        //  paginatePosts = computed(()  =>  {
-        //      const start = (currentPage.value -1) * itemPergePage;
-        //      const end = start + itemPergePage
-        //      return this.posts.value.slice(start,end);
-        // }),
+  getters: {
+    totalPosts: (state) => state.posts.length,
+  },
 
-          async fetchPosts () {
-             const res = await axios.get('https://postit.zoul.dev/notes')
-             this.posts = res.data.notes
-         },
+  actions: {
+    async fetchPosts() {
+      this.isLoading = true
+      this.error = null
+      try {
+        const res = await axios.get(API_URL)
+        this.posts = res.data.notes ?? res.data ?? []
+      } catch (err) {
+        console.error('Erreur fetchPosts :', err)
+        this.error = err.message
+        this.posts = []
+      } finally {
+        this.isLoading = false
+      }
+    },
 
-          async addPosts (payload) {
-             await axios.post('https://postit.zoul.dev/notes',payload)
-             this.fetchPosts()
-         },
-          async deletePosts (_id){
-             await axios.delete(`https://postit.zoul.dev/notes/${_id}`)
-             this.fetchPosts()
-         },
-          async fetchPostById(_id) {
-              const res = await axios.get(`https://postit.zoul.dev/notes/${_id}`)
-              this.selectedPost = res.data.notes
-         },
-          async updatePosts(_id, updateData) {
-             await axios.put(`https://postit.zoul.dev/notes/${_id}`,updateData)
-             this.fetchPosts()
-        },
-        
-       
+    async fetchPostById(_id) {
+      this.isLoading = true
+      this.error = null
+      try {
+        const res = await axios.get(`${API_URL}/${_id}`)
+        this.selectedPost = res.data.note ?? res.data.notes ?? res.data
+      } catch (err) {
+        console.error('Erreur fetchPostById :', err)
+        this.error = err.message
+        this.selectedPost = null
+      } finally {
+        this.isLoading = false
+      }
+    },
 
-    }
+    async addPosts(payload) {
+      this.isLoading = true
+      this.error = null
+      try {
+        await axios.post(API_URL, payload)
+        await this.fetchPosts()
+      } catch (err) {
+        console.error('Erreur addPosts :', err)
+        this.error = err.message
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async updatePosts(_id, updateData) {
+      this.isLoading = true
+      this.error = null
+      try {
+        await axios.put(`${API_URL}/${_id}`, updateData)
+        await this.fetchPosts()
+      } catch (err) {
+        console.error('Erreur updatePosts :', err)
+        this.error = err.message
+        throw err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async deletePosts(_id) {
+      try {
+        await axios.delete(`${API_URL}/${_id}`)
+        this.posts = this.posts.filter((p) => p._id !== _id)
+      } catch (err) {
+        console.error('Erreur deletePosts :', err)
+        this.error = err.message
+        throw err
+      }
+    },
+  },
 })

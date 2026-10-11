@@ -1,8 +1,51 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { usePostStore } from '@/store/post'
+import { storeToRefs } from 'pinia'
+
+const route = useRoute()
+const router = useRouter()
+const store = usePostStore()
+const { selectedPost, isLoading } = storeToRefs(store)
+
+const id = route.params._id
+const title = ref('')
+const content = ref('')
+const isSubmitting = ref(false)
+
+const loadPost = async () => {
+  await store.fetchPostById(id)
+  if (selectedPost.value) {
+    title.value = selectedPost.value.title ?? ''
+    content.value = Array.isArray(selectedPost.value.content)
+      ? (selectedPost.value.content[0] ?? '')
+      : (selectedPost.value.content ?? '')
+  }
+}
+
+const updatePost = async () => {
+  try {
+    isSubmitting.value = true
+    await store.updatePosts(id, {
+      title: title.value,
+      content: [content.value],
+    })
+    router.push('/')
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour :", error)
+    alert("Une erreur est survenue lors de la modification.")
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+onMounted(loadPost)
+</script>
+
 <template>
   <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 md:p-10 antialiased">
-    
     <div class="w-full max-w-xl mx-auto space-y-6 animate-fade-in">
-      
       <div class="flex justify-start">
         <router-link to="/" class="group inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm hover:shadow border border-transparent hover:border-slate-100 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200">
@@ -20,7 +63,6 @@
       </div>
 
       <form v-else @submit.prevent="updatePost" class="relative bg-white text-slate-700 p-8 sm:p-10 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 text-left space-y-6 overflow-hidden">
-        
         <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
 
         <div>
@@ -30,101 +72,30 @@
 
         <div class="space-y-1.5">
           <label class="text-xs font-bold text-slate-500 uppercase tracking-wider" for="title">Titre</label>
-          <input 
-            id="title" 
-            type="text" 
-            placeholder="Entrez le titre..." 
-            v-model="title"
-            required
-            class="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 hover:border-slate-300"
-          >
+          <input id="title" type="text" placeholder="Entrez le titre..." v-model="title" required
+            class="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 hover:border-slate-300">
         </div>
 
         <div class="space-y-1.5">
           <label class="text-xs font-bold text-slate-500 uppercase tracking-wider" for="content">Contenu</label>
-          <textarea 
-            id="content" 
-            rows="8" 
-            placeholder="Écrivez vos idées ici..."  
-            v-model="content"
-            required
-            class="w-full resize-none px-4 py-3 border border-slate-200 rounded-xl text-slate-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 hover:border-slate-300"
-          ></textarea>
+          <textarea id="content" rows="8" placeholder="Écrivez vos idées ici..." v-model="content" required
+            class="w-full resize-none px-4 py-3 border border-slate-200 rounded-xl text-slate-700 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all duration-200 hover:border-slate-300"></textarea>
         </div>
 
         <div class="flex items-center justify-end pt-2 border-t border-slate-50">
-          <button 
-            type="submit" 
-            :disabled="isSubmitting"
-            class="w-full sm:w-auto min-w-[140px] bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] disabled:opacity-50 transition-all duration-150 flex items-center justify-center space-x-2 cursor-pointer"
-          >
+          <button type="submit" :disabled="isSubmitting"
+            class="w-full sm:w-auto min-w-[140px] bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] disabled:opacity-50 transition-all duration-150 flex items-center justify-center space-x-2 cursor-pointer">
             <span v-if="isSubmitting">Mise à jour...</span>
             <span v-else>Enregistrer</span>
           </button>
         </div>
-
       </form>
-
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
-
-const route = useRoute()
-const router = useRouter()
-const id = route.params._id
-
-const title = ref('')
-const content = ref('')
-const isLoading = ref(true)
-const isSubmitting = ref(false)
-
-// Récupération de la note existante
-const fetchPost = async () =>  {
-  try {
-    isLoading.value = true
-    const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/notes/${id}`)
-    title.value = res.data.title
-    // Sécurité au cas où content est vide ou pas un tableau
-    content.value = res.data.content && res.data.content[0] ? res.data.content[0] : ''
-  } catch (error) {
-    console.error("Erreur lors de la récupération du post :", error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Envoi des modifications
-const updatePost = async () => {
-  try {
-    isSubmitting.value = true
-    await axios.put(`${import.meta.env.VITE_API_BASE_URL}/notes/${id}`, {
-      title: title.value,
-      content: [content.value]
-    })
-    
-    // Remplacement de l'alert classique par une redirection propre
-    router.push('/')
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour :", error)
-    alert("Une erreur est survenue lors de la modification.")
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-onMounted(fetchPost)
-</script>
-
 <style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
