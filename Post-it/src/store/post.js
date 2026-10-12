@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 
-const API_URL = '/api/notes'
+const API_URL = 'https://postit.zoul.dev/notes'
 
 export const usePostStore = defineStore('post', {
   state: () => ({
